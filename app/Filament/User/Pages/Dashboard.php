@@ -6,7 +6,7 @@ use Filament\Pages\Page;
 
 class Dashboard extends Page
 {
-    protected string $view = 'filament.user.pages.dashboard';
+    protected static string $view = 'filament.user.pages.dashboard';
     
     public function getTitle(): string
     {
