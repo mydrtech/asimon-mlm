@@ -17,16 +17,15 @@ class Dashboard extends Page
     {
         $user = auth()->user();
         
+        // Simple team count using direct query
+        $teamCount = \App\Models\User::where('referred_by', $user->id)->count();
+        
         return [
+            'user' => $user,
             'walletBalance' => $user->wallet_balance,
             'totalEarned' => $user->total_earned,
-            'teamSize' => $user->referrals()->count(),
+            'teamSize' => $teamCount,
             'referralLink' => url('/user/register?ref=' . $user->referral_code),
-            'mlmPlan' => optional(\App\Models\MlmSetting::getActive())->plan_type ?? 'unilevel',
-            'recentTransactions' => \App\Models\Transaction::where('user_id', $user->id)
-                ->latest()
-                ->limit(5)
-                ->get(),
         ];
     }
 }
