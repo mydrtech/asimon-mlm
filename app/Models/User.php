@@ -2,47 +2,141 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
 class User extends Authenticatable
 {
-    /** @use HasFactory<\Database\Factories\UserFactory> */
     use HasFactory, Notifiable;
 
-    /**
-     * The attributes that are mass assignable.
-     *
-     * @var list<string>
-     */
     protected $fillable = [
         'name',
         'email',
         'password',
+        'phone',
+        'referral_code',
+        'referred_by',
+        'role',
+        'status',
+        'wallet_balance',
+        'total_earned',
+        'left_count',
+        'right_count',
+        'position',
     ];
 
-    /**
-     * The attributes that should be hidden for serialization.
-     *
-     * @var list<string>
-     */
     protected $hidden = [
         'password',
         'remember_token',
     ];
 
-    /**
-     * Get the attributes that should be cast.
-     *
-     * @return array<string, string>
-     */
-    protected function casts(): array
+    protected $casts = [
+        'email_verified_at' => 'datetime',
+        'wallet_balance' => 'decimal:2',
+        'total_earned' => 'decimal:2',
+    ];
+
+    // Referral relationship: who referred this user
+    public function referrer()
     {
-        return [
-            'email_verified_at' => 'datetime',
-            'password' => 'hashed',
-        ];
+        return $this->belongsTo(User::class, 'referred_by');
+    }
+
+    // Referral relationship: users this user referred
+    public function referrals()
+    {
+        return $this->hasMany(User::class, 'referred_by');
+    }
+
+    // Binary left child
+    public function leftChild()
+    {
+        return $this->hasOne(User::class, 'referred_by')
+            ->where('position', 'left');
+    }
+
+    // Binary right child
+    public function rightChild()
+    {
+        return $this->hasOne(User::class, 'referred_by')
+            ->where('position', 'right');
+    }
+
+    // Transactions relationship
+    public function transactions()
+    {
+        return $this->hasMany(Transaction::class);
+    }
+
+    // Withdraw requests relationship
+    public function withdrawRequests()
+    {
+        return $this->hasMany(WithdrawRequest::class);
+    }
+
+    // Get all upline users (ancestors)
+    public function getUpline($levels = 10)
+    {
+        $upline = [];
+        $currentUser = $this;
+        
+        for ($i = 0; $i < $levels; $i++) {
+            if ($currentUser->referrer) {
+                $upline[] = $currentUser->referrer;
+                $currentUser = $currentUser->referrer;
+            } else {
+                break;
+            }
+        }
+        
+        return collect($upline);
+    }
+
+    // Get downline users by level
+    public function getDownlineByLevel($level = 1, $currentLevel = 1)
+    {
+        if ($currentLevel > $level) {
+            return collect();
+        }
+
+        $downline = collect();
+        
+        foreach ($this->referrals as $referral) {
+            $downline->push($referral);
+            if ($currentLevel < $level) {
+                $downline = $downline->merge($referral->getDownlineByLevel($level, $currentLevel + 1));
+            }
+        }
+        
+        return $downline;
+    }
+
+    // Get team size
+    public function getTeamSizeAttribute()
+    {
+        return $this->referrals()->count();
+    }
+
+    // Add wallet balance
+    public function addWalletBalance($amount, $note = null)
+    {
+        $this->wallet_balance += $amount;
+        $this->total_earned += $amount;
+        $this->save();
+        
+        return $this;
+    }
+
+    // Deduct wallet balance
+    public function deductWalletBalance($amount, $note = null)
+    {
+        if ($this->wallet_balance >= $amount) {
+            $this->wallet_balance -= $amount;
+            $this->save();
+            return true;
+        }
+        
+        return false;
     }
 }
