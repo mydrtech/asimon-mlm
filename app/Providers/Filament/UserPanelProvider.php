@@ -24,7 +24,7 @@ class UserPanelProvider extends PanelProvider
             ->id('user')
             ->path('user')
             ->login()
-            ->registration()
+            ->registration(\App\Filament\User\Pages\Register::class)
             ->passwordReset()
             ->profile()
             ->colors([
