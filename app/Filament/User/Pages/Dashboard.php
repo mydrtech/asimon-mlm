@@ -6,37 +6,27 @@ use Filament\Pages\Page;
 
 class Dashboard extends Page
 {
-    protected static ?string $navigationIcon = 'heroicon-o-home';
-    protected static ?string $navigationLabel = 'Dashboard';
-    protected static ?int $navigationSort = 1;
-    protected static string $view = 'filament.user.pages.dashboard';
-
-    public $walletBalance;
-    public $totalEarned;
-    public $teamSize;
-    public $referralLink;
-    public $mlmPlan;
-    public $recentTransactions;
-
-    public function mount(): void
-    {
-        $user = auth()->user();
-        $this->walletBalance = $user->wallet_balance;
-        $this->totalEarned = $user->total_earned;
-        $this->teamSize = $user->referrals()->count();
-        $this->referralLink = url('/user/register?ref=' . $user->referral_code);
-        
-        $mlmSetting = \App\Models\MlmSetting::getActive();
-        $this->mlmPlan = $mlmSetting ? $mlmSetting->plan_type : 'unilevel';
-        
-        $this->recentTransactions = \App\Models\Transaction::where('user_id', $user->id)
-            ->latest()
-            ->limit(5)
-            ->get();
-    }
-
+    protected string $view = 'filament.user.pages.dashboard';
+    
     public function getTitle(): string
     {
-        return 'User Dashboard';
+        return 'Dashboard';
+    }
+    
+    protected function getViewData(): array
+    {
+        $user = auth()->user();
+        
+        return [
+            'walletBalance' => $user->wallet_balance,
+            'totalEarned' => $user->total_earned,
+            'teamSize' => $user->referrals()->count(),
+            'referralLink' => url('/user/register?ref=' . $user->referral_code),
+            'mlmPlan' => optional(\App\Models\MlmSetting::getActive())->plan_type ?? 'unilevel',
+            'recentTransactions' => \App\Models\Transaction::where('user_id', $user->id)
+                ->latest()
+                ->limit(5)
+                ->get(),
+        ];
     }
 }
