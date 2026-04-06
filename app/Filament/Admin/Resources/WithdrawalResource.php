@@ -10,6 +10,7 @@ use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Filament\Notifications\Notification;
+use App\Models\Transaction; 
 
 class WithdrawalResource extends Resource
 {
@@ -63,10 +64,11 @@ class WithdrawalResource extends Resource
                 Tables\Actions\Action::make('approve')
                     ->label('Approve')
                     ->color('success')
-                    ->action(function ($record) {
-                        $record->update(['status' => 'approved']);
-                        Notification::make()->success()->title('Approved')->send();
-                    })
+                   ->action(function ($record) {
+    $record->user->decrement('wallet_balance', $record->amount);
+    Transaction::createWithdrawal($record->user_id, $record->amount, 'Withdrawal approved');
+    $record->update(['status' => 'paid', 'processed_at' => now()]);
+})
                     ->visible(fn ($record) => $record->status === 'pending'),
                 Tables\Actions\Action::make('reject')
                     ->label('Reject')

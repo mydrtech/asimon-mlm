@@ -129,10 +129,12 @@ class Wallet extends Page
     }
 
     DB::beginTransaction();
+    
 
     try {
+        $user->decrement('wallet_balance', $this->withdrawAmount);
         // Create withdrawal request
-        $withdrawRequest = WithdrawRequest::create([
+        $withdrawRequest  = WithdrawRequest::create([
             'user_id' => $user->id,
             'amount' => $this->withdrawAmount,
             'method' => $this->withdrawMethod,
