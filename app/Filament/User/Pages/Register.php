@@ -2,6 +2,7 @@
 
 namespace App\Filament\User\Pages;
 
+use App\Jobs\DistributeCommissionJob;
 use Filament\Pages\Auth\Register as BaseRegister;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Form;
@@ -57,99 +58,98 @@ class Register extends BaseRegister
     }
     
     protected function handleRegistration(array $data): \Illuminate\Database\Eloquent\Model
-    {
-        try {
-            // Find sponsor using referral code
-            $sponsor = null;
-            if (!empty($data['sponsor_id'])) {
-                $sponsor = User::where('referral_code', $data['sponsor_id'])->first();
-                
-                if (!$sponsor) {
-                    Notification::make()
-                        ->title('Invalid Sponsor ID')
-                        ->body('The sponsor referral code you entered is invalid.')
-                        ->danger()
-                        ->send();
-                    
-                    throw new \Exception('Invalid sponsor referral code');
-                }
-            }
+{
+    try {
+        // Find sponsor using referral code
+        $sponsor = null;
+        if (!empty($data['sponsor_id'])) {
+            $sponsor = User::where('referral_code', $data['sponsor_id'])->first();
             
-            // Check if email already exists
-            if (User::where('email', $data['email'])->exists()) {
+            if (!$sponsor) {
                 Notification::make()
-                    ->title('Email Already Exists')
-                    ->body('This email address is already registered. Please use a different email or login.')
+                    ->title('Invalid Sponsor ID')
+                    ->body('The sponsor referral code you entered is invalid.')
                     ->danger()
                     ->send();
                 
-                throw new \Exception('Email already exists');
+                throw new \Exception('Invalid sponsor referral code');
             }
-            
-            // Check if phone already exists
-            if (User::where('phone', $data['phone'])->exists()) {
-                Notification::make()
-                    ->title('Phone Number Already Exists')
-                    ->body('This phone number is already registered.')
-                    ->danger()
-                    ->send();
-                
-                throw new \Exception('Phone number already exists');
-            }
-            
-            // Generate unique referral code for new user
-            $referralCode = $this->generateReferralCode();
-            
-            // Create user
-            $user = User::create([
-                'name' => $data['name'],
-                'email' => $data['email'],
-                'phone' => $data['phone'],
-                'password' => bcrypt($data['password']),
-                'referral_code' => $referralCode,
-                'referred_by' => $sponsor ? $sponsor->id : null,
-                'role' => 'user',
-                'status' => 'active',
-                'wallet_balance' => 0,
-                'total_earned' => 0,
-                'left_count' => 0,
-                'right_count' => 0,
-            ]);
-            
-            // Assign binary position if sponsor exists
-            if ($sponsor) {
-                $this->assignBinaryPosition($user, $sponsor);
-                
-                // Distribute commission if registration fee > 0
-                $mlmSetting = \App\Models\MlmSetting::getActive();
-                if ($mlmSetting && $mlmSetting->registration_fee > 0) {
-                    $commissionService = new \App\Services\CommissionService();
-                    $commissionService->distribute($user, $mlmSetting->registration_fee);
-                }
-            }
-            
+        }
+        
+        // Check if email already exists
+        if (User::where('email', $data['email'])->exists()) {
             Notification::make()
-                ->title('Registration Successful')
-                ->body('Welcome! Your account has been created successfully.')
-                ->success()
+                ->title('Email Already Exists')
+                ->body('This email address is already registered. Please use a different email or login.')
+                ->danger()
                 ->send();
             
-            return $user;
-            
-        } catch (QueryException $e) {
-            if ($e->errorInfo[1] == 1062) { // Duplicate entry error
-                Notification::make()
-                    ->title('Registration Failed')
-                    ->body('Email or phone number already exists. Please use different credentials.')
-                    ->danger()
-                    ->send();
-            }
-            
-            throw $e;
-        } catch (\Exception $e) {
-            throw $e;
+            throw new \Exception('Email already exists');
         }
+        
+        // Check if phone already exists
+        if (User::where('phone', $data['phone'])->exists()) {
+            Notification::make()
+                ->title('Phone Number Already Exists')
+                ->body('This phone number is already registered.')
+                ->danger()
+                ->send();
+            
+            throw new \Exception('Phone number already exists');
+        }
+        
+        // Generate unique referral code for new user
+        $referralCode = $this->generateReferralCode();
+        
+        // Create user
+        $user = User::create([
+            'name' => $data['name'],
+            'email' => $data['email'],
+            'phone' => $data['phone'],
+            'password' => bcrypt($data['password']),
+            'referral_code' => $referralCode,
+            'referred_by' => $sponsor ? $sponsor->id : null,
+            'role' => 'user',
+            'status' => 'active',
+            'wallet_balance' => 0,
+            'total_earned' => 0,
+            'left_count' => 0,
+            'right_count' => 0,
+        ]);
+        
+        // Assign binary position if sponsor exists
+        if ($sponsor) {
+            $this->assignBinaryPosition($user, $sponsor);
+            
+            // Distribute commission via background job if registration fee > 0
+            $mlmSetting = \App\Models\MlmSetting::getActive();
+            if ($mlmSetting && $mlmSetting->registration_fee > 0) {
+                \App\Jobs\DistributeCommissionJob::dispatch($user->id, $mlmSetting->registration_fee, 'registration');
+            }
+        }
+        
+        Notification::make()
+            ->title('Registration Successful')
+            ->body('Welcome! Your account has been created successfully.')
+            ->success()
+            ->send();
+        
+        return $user;
+        
+    } catch (QueryException $e) {
+        if ($e->errorInfo[1] == 1062) {
+            Notification::make()
+                ->title('Registration Failed')
+                ->body('Email or phone number already exists. Please use different credentials.')
+                ->danger()
+                ->send();
+        }
+        
+        throw $e;
+    } catch (\Exception $e) {
+        throw $e;
     }
+}
     
     private function generateReferralCode(): string
     {

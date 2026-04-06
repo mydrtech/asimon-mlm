@@ -76,84 +76,108 @@ class Wallet extends Page
         $this->accountDetails = [];
     }
 
-    public function submitWithdrawRequest(): void
-    {
-        $this->validate([
-            'withdrawAmount' => 'required|numeric|min:' . $this->minWithdraw,
-            'withdrawMethod' => 'required|in:bank,upi,paytm,phonepe,googlepay',
-        ]);
+   public function submitWithdrawRequest(): void
+{
+    $this->validate([
+        'withdrawAmount' => 'required|numeric|min:' . $this->minWithdraw,
+        'withdrawMethod' => 'required|in:bank,upi,paytm,phonepe,googlepay',
+    ]);
 
-        $user = auth()->user();
+    $user = auth()->user();
 
-        if ($user->wallet_balance < $this->withdrawAmount) {
+    if (!$user) {
+        Notification::make()
+            ->title('Error')
+            ->body('User not found. Please login again.')
+            ->danger()
+            ->send();
+        return;
+    }
+
+    if ($user->wallet_balance < $this->withdrawAmount) {
+        Notification::make()
+            ->title('Insufficient Balance')
+            ->body('Your wallet balance is less than the withdrawal amount.')
+            ->danger()
+            ->send();
+        return;
+    }
+
+    // Validate account details based on method
+    if ($this->withdrawMethod === 'bank') {
+        // Bank validation - account details required
+        if (empty($this->accountDetails['account_number']) || 
+            empty($this->accountDetails['ifsc_code']) || 
+            empty($this->accountDetails['account_holder_name'])) {
             Notification::make()
-                ->title('Insufficient Balance')
-                ->body('Your wallet balance is less than the withdrawal amount.')
+                ->title('Validation Error')
+                ->body('Please fill all bank account details: Account Number, IFSC Code, and Account Holder Name.')
                 ->danger()
                 ->send();
             return;
         }
-
-        // Validate account details based on method
-        if ($this->withdrawMethod === 'bank') {
-            $this->validate([
-                'accountDetails.account_number' => 'required|string',
-                'accountDetails.ifsc_code' => 'required|string',
-                'accountDetails.account_holder_name' => 'required|string',
-            ]);
-        } elseif (in_array($this->withdrawMethod, ['upi', 'paytm', 'phonepe', 'googlepay'])) {
-            $this->validate([
-                'accountDetails.upi_id' => 'required|string',
-            ]);
-        }
-
-        DB::beginTransaction();
-
-        try {
-            // Create withdrawal request
-            $withdrawRequest = WithdrawRequest::create([
-                'user_id' => $user->id,
-                'amount' => $this->withdrawAmount,
-                'method' => $this->withdrawMethod,
-                'account_details' => $this->accountDetails,
-                'status' => 'pending',
-            ]);
-
-            // Create pending transaction
-            Transaction::create([
-                'user_id' => $user->id,
-                'type' => 'withdrawal',
-                'amount' => $this->withdrawAmount,
-                'status' => 'pending',
-                'note' => "Withdrawal request #{$withdrawRequest->id} via " . strtoupper($this->withdrawMethod),
-            ]);
-
-            DB::commit();
-
+    } elseif (in_array($this->withdrawMethod, ['upi', 'paytm', 'phonepe', 'googlepay'])) {
+        // UPI validation - UPI ID required
+        if (empty($this->accountDetails['upi_id'])) {
             Notification::make()
-                ->title('Withdrawal Request Submitted')
-                ->body("Your withdrawal request of ₹" . number_format($this->withdrawAmount, 2) . " has been submitted. Admin will review it soon.")
-                ->success()
-                ->send();
-
-            // Reset form
-            $this->withdrawAmount = '';
-            $this->accountDetails = [];
-            
-            // Reload data
-            $this->loadWalletData();
-            $this->loadRecentTransactions();
-            $this->loadWithdrawHistory();
-
-        } catch (\Exception $e) {
-            DB::rollBack();
-            Notification::make()
-                ->title('Withdrawal Failed')
-                ->body('Something went wrong. Please try again later.')
+                ->title('Validation Error')
+                ->body('Please enter your UPI ID / Mobile Number.')
                 ->danger()
                 ->send();
+            return;
         }
     }
+
+    DB::beginTransaction();
+
+    try {
+        // Create withdrawal request
+        $withdrawRequest = WithdrawRequest::create([
+            'user_id' => $user->id,
+            'amount' => $this->withdrawAmount,
+            'method' => $this->withdrawMethod,
+            'account_details' => $this->accountDetails,
+            'status' => 'pending',
+        ]);
+
+        // Create pending transaction
+        Transaction::create([
+            'user_id' => $user->id,
+            'type' => 'withdrawal',
+            'amount' => $this->withdrawAmount,
+            'status' => 'pending',
+            'note' => "Withdrawal request #{$withdrawRequest->id} via " . strtoupper($this->withdrawMethod),
+        ]);
+
+        DB::commit();
+
+        Notification::make()
+            ->title('Withdrawal Request Submitted')
+            ->body("Your withdrawal request of ₹" . number_format($this->withdrawAmount, 2) . " has been submitted. Admin will review it soon.")
+            ->success()
+            ->send();
+
+        // Reset form
+        $this->withdrawAmount = '';
+        $this->accountDetails = [];
+        
+        // Reload data
+        $this->loadWalletData();
+        $this->loadRecentTransactions();
+        $this->loadWithdrawHistory();
+
+    } catch (\Exception $e) {
+        DB::rollBack();
+        
+        \Illuminate\Support\Facades\Log::error('Withdrawal error: ' . $e->getMessage());
+        
+        Notification::make()
+            ->title('Withdrawal Failed')
+            ->body('Error: ' . $e->getMessage())
+            ->danger()
+            ->send();
+    }
+}
 
     public function getTitle(): string
     {

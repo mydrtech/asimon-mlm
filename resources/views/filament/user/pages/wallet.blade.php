@@ -92,14 +92,28 @@
             @endif
 
             <!-- UPI Details Form -->
-            @if(in_array($withdrawMethod, ['upi', 'paytm', 'phonepe', 'googlepay']))
-            <div class="mt-4">
-                <label class="block text-sm font-medium mb-1">UPI ID / Mobile Number</label>
-                <input type="text" wire:model="accountDetails.upi_id" 
-                       class="w-full rounded-lg border-gray-300 dark:border-gray-700 dark:bg-gray-900"
-                       placeholder="example@upi or 9876543210">
-            </div>
-            @endif
+            <!-- UPI Details Form -->
+@if(in_array($withdrawMethod, ['upi', 'paytm', 'phonepe', 'googlepay']))
+<div class="mt-4">
+    <label class="block text-sm font-medium mb-1">
+        @if($withdrawMethod == 'upi')
+            UPI ID (e.g., username@ybl)
+        @elseif($withdrawMethod == 'paytm')
+            Paytm Mobile Number
+        @elseif($withdrawMethod == 'phonepe')
+            PhonePe Number / UPI ID
+        @else
+            Google Pay UPI ID / Mobile Number
+        @endif
+    </label>
+    <input type="text" wire:model="accountDetails.upi_id" 
+           class="w-full rounded-lg border-gray-300 dark:border-gray-700 dark:bg-gray-900"
+           placeholder="Enter your UPI ID or mobile number">
+    @error('accountDetails.upi_id') 
+        <span class="text-red-500 text-xs">{{ $message }}</span> 
+    @enderror
+</div>
+@endif
 
             <div class="mt-6">
                 <button wire:click="submitWithdrawRequest" 
