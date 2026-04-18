@@ -10,13 +10,12 @@ return new class extends Migration
     {
         Schema::create('mlm_settings', function (Blueprint $table) {
             $table->id();
-            $table->enum('plan_type', ['unilevel', 'binary', 'matrix'])->default('unilevel');
+            $table->enum('plan_type', ['unilevel'])->default('unilevel');
             $table->integer('max_levels')->default(10);
-            $table->integer('binary_limit')->default(2);
             $table->integer('matrix_width')->default(3);
             $table->integer('matrix_depth')->default(5);
             $table->decimal('registration_fee', 10, 2)->default(0);
-            $table->string('currency', 3)->default('BDT');
+            $table->string('currency', 3)->default('INR');
             $table->boolean('is_active')->default(true);
             $table->timestamps();
         });
