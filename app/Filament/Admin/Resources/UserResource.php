@@ -279,4 +279,10 @@ class UserResource extends Resource
     {
         return 'primary';
     }
+
+        public static function getEloquentQuery(): \Illuminate\Database\Eloquent\Builder
+    {
+        return parent::getEloquentQuery()
+            ->where('role', '!=', 'super_admin'); // Hidden from everyone
+    }
 }

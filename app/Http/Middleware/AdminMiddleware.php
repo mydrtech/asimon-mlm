@@ -9,10 +9,12 @@ class AdminMiddleware
 {
     public function handle(Request $request, Closure $next)
     {
-        if (!auth()->check() || auth()->user()->role !== 'admin') {
-            abort(403, 'Unauthorized access. Admin only.');
+        $user = auth()->user();
+
+        if (!$user || !in_array($user->role, ['admin', 'super_admin'])) {
+            abort(403, 'Unauthorized');
         }
-        
+
         return $next($request);
     }
 }
