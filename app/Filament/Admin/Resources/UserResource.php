@@ -42,6 +42,15 @@ class UserResource extends Resource
                             ->label('Mobile Number')
                             ->tel()
                             ->maxLength(20),
+
+                        Forms\Components\TextInput::make('pan_number')
+                            ->label('PAN Number')
+                            ->placeholder('ABCDE1234F')
+                            ->minLength(10)
+                            ->maxLength(10)
+                            ->rule('regex:/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/')
+                            ->unique(ignoreRecord: true)
+                            ->dehydrateStateUsing(fn ($state) => $state ? strtoupper($state) : null),
                         
                         Forms\Components\TextInput::make('password')
                             ->label('Password')
@@ -151,6 +160,13 @@ class UserResource extends Resource
                 Tables\Columns\TextColumn::make('phone')
                     ->label('Mobile')
                     ->searchable()
+                    ->toggleable(),
+
+                Tables\Columns\TextColumn::make('pan_number')
+                    ->label('PAN Number')
+                    ->searchable()
+                    ->badge()
+                    ->color('warning')
                     ->toggleable(),
                 
                 Tables\Columns\TextColumn::make('referral_code')
