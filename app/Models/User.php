@@ -51,18 +51,7 @@ class User extends Authenticatable
     }
 
     // Binary left child
-    public function leftChild()
-    {
-        return $this->hasOne(User::class, 'referred_by')
-            ->where('position', 'left');
-    }
-
-    // Binary right child
-    public function rightChild()
-    {
-        return $this->hasOne(User::class, 'referred_by')
-            ->where('position', 'right');
-    }
+    
 
     // Transactions relationship
     public function transactions()
@@ -114,10 +103,20 @@ class User extends Authenticatable
     }
 
     // Get team size
-    public function getTeamSizeAttribute()
-    {
-        return $this->referrals()->count();
+    public function getTeamSizeAttribute(): int
+{
+    return $this->getTotalTeamCount();
+}
+
+private function getTotalTeamCount(int $depth = 0): int
+{
+    if ($depth > 10) return 0;
+    $count = $this->referrals()->count();
+    foreach ($this->referrals as $child) {
+        $count += $child->getTotalTeamCount($depth + 1);
     }
+    return $count;
+}
 
     // Add wallet balance
     public function addWalletBalance($amount, $note = null)

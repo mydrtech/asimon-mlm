@@ -97,13 +97,7 @@ class UserResource extends Resource
                             ->required()
                             ->default('active'),
                         
-                        Forms\Components\Select::make('position')
-                            ->label('Binary Position')
-                            ->options([
-                                'left' => 'Left',
-                                'right' => 'Right',
-                            ])
-                            ->nullable(),
+                        
                     ])->columns(2),
                 
                 Forms\Components\Section::make('Financial Information')
@@ -122,17 +116,7 @@ class UserResource extends Resource
                             ->disabled()
                             ->helperText('Auto-calculated from commissions'),
                         
-                        Forms\Components\TextInput::make('left_count')
-                            ->label('Left Team Count')
-                            ->numeric()
-                            ->default(0)
-                            ->disabled(),
                         
-                        Forms\Components\TextInput::make('right_count')
-                            ->label('Right Team Count')
-                            ->numeric()
-                            ->default(0)
-                            ->disabled(),
                     ])->columns(2),
             ]);
     }
@@ -209,15 +193,7 @@ class UserResource extends Resource
                     ->money('INR')
                     ->sortable(),
                 
-                Tables\Columns\TextColumn::make('left_count')
-                    ->label('Left')
-                    ->numeric()
-                    ->toggleable(),
                 
-                Tables\Columns\TextColumn::make('right_count')
-                    ->label('Right')
-                    ->numeric()
-                    ->toggleable(),
                 
                 Tables\Columns\TextColumn::make('created_at')
                     ->label('Joined')

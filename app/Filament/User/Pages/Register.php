@@ -122,8 +122,6 @@ class Register extends BaseRegister
             ]);
 
             if ($sponsor) {
-                $this->assignBinaryPosition($user, $sponsor);
-
                 $mlmSetting = \App\Models\MlmSetting::getActive();
                 if ($mlmSetting && $mlmSetting->registration_fee > 0) {
                     DistributeCommissionJob::dispatch($user->id, $mlmSetting->registration_fee, 'registration');
@@ -154,17 +152,7 @@ class Register extends BaseRegister
         return $code;
     }
 
-    private function assignBinaryPosition($user, $sponsor): void
-    {
-        if ($sponsor->left_count <= $sponsor->right_count) {
-            $user->position = 'left';
-            $sponsor->increment('left_count');
-        } else {
-            $user->position = 'right';
-            $sponsor->increment('right_count');
-        }
-        $user->save();
-    }
+   
 
     protected function getRedirectUrl(): string
     {

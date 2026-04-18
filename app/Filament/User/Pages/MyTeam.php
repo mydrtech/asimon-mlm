@@ -25,8 +25,6 @@ class MyTeam extends Page
         $user = auth()->user();
         $this->totalTeam = User::where('referred_by', $user->id)->count();
         $this->activeTeam = User::where('referred_by', $user->id)->where('status', 'active')->count();
-        $this->leftTeamCount = $user->left_count;
-        $this->rightTeamCount = $user->right_count;
         $this->loadTeamMembers();
     }
 

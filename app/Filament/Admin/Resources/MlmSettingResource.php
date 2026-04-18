@@ -23,13 +23,14 @@ class MlmSettingResource extends Resource
         return $form
             ->schema([
                 Forms\Components\Select::make('plan_type')
-                    ->label('Plan Type')
+                    ->label('MLM Plan')
                     ->options([
-                        'unilevel' => 'Unilevel',
-                        'binary' => 'Binary',
-                        'matrix' => 'Matrix',
+                        'unilevel' => '🌻 Sunflower System (Unlimited Downline)',
                     ])
+                    ->default('unilevel')
+                    ->disabled()
                     ->required(),
+                    
                 Forms\Components\TextInput::make('max_levels')
                     ->label('Max Levels')
                     ->numeric()

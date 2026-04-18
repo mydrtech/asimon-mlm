@@ -42,23 +42,11 @@ class ReferralService
      */
     public function assignPosition(User $user, User $referrer, ?string $preferredPosition = null): bool
     {
-        if (!$this->mlmSetting || !$this->mlmSetting->isBinary()) {
-            // For unilevel or matrix, position doesn't matter
-            $user->position = null;
-            $user->save();
-            return true;
-        }
+        
 
-        // For binary plan
-        if ($preferredPosition && in_array($preferredPosition, ['left', 'right'])) {
-            $position = $preferredPosition;
-        } else {
-            // Auto assign to the side with fewer users
-            $position = $referrer->left_count <= $referrer->right_count ? 'left' : 'right';
-        }
-
-        $user->position = $position;
+        $user->position = null;
         $user->save();
+        return true;
 
         // Update referrer's left/right count
         if ($position === 'left') {

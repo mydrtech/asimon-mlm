@@ -117,62 +117,7 @@ class CommissionService
      * @param float $amount
      * @return array
      */
-    public function distributeBinaryCommission(User $user, float $amount): array
-    {
-        if (!$this->mlmSetting || !$this->mlmSetting->isBinary()) {
-            return ['success' => false, 'message' => 'Binary plan is not active'];
-        }
-
-        $distributed = [];
-        
-        DB::beginTransaction();
-        
-        try {
-            $binaryLimit = $this->mlmSetting->binary_limit;
-            $pairCount = min($user->left_count, $user->right_count);
-            
-            if ($pairCount > 0) {
-                $commissionAmount = $amount * $pairCount;
-                
-                $user->addWalletBalance($commissionAmount, "Binary commission for {$pairCount} pairs");
-                
-                $transaction = Transaction::createCommission(
-                    $user->id,
-                    null,
-                    $commissionAmount,
-                    null,
-                    "Binary matching commission - {$pairCount} pairs"
-                );
-                
-                $distributed[] = [
-                    'user_id' => $user->id,
-                    'pair_count' => $pairCount,
-                    'amount' => $commissionAmount,
-                    'transaction_id' => $transaction->id
-                ];
-            }
-            
-            DB::commit();
-            
-            return [
-                'success' => true,
-                'message' => 'Binary commission distributed',
-                'distributions' => $distributed
-            ];
-            
-        } catch (\Exception $e) {
-            DB::rollBack();
-            Log::error('Binary commission distribution failed', [
-                'user_id' => $user->id,
-                'error' => $e->getMessage()
-            ]);
-            
-            return [
-                'success' => false,
-                'message' => 'Binary commission failed: ' . $e->getMessage()
-            ];
-        }
-    }
+   
 
     /**
      * Get commission summary for a user

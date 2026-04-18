@@ -12,15 +12,7 @@
                 <p class="text-2xl font-bold mt-1">{{ $activeTeam }}</p>
             </div>
             
-            <div class="bg-gradient-to-r from-orange-500 to-orange-600 text-white p-4 rounded-lg shadow">
-                <h3 class="text-sm font-semibold">Left Team</h3>
-                <p class="text-2xl font-bold mt-1">{{ $leftTeamCount }}</p>
-            </div>
             
-            <div class="bg-gradient-to-r from-purple-500 to-purple-600 text-white p-4 rounded-lg shadow">
-                <h3 class="text-sm font-semibold">Right Team</h3>
-                <p class="text-2xl font-bold mt-1">{{ $rightTeamCount }}</p>
-            </div>
         </div>
 
         <!-- Team Members Table -->
