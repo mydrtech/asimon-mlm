@@ -36,7 +36,7 @@ class AdminPanelProvider extends PanelProvider
             ->colors([
                 'primary' => Color::hex('#1a1a2e'),
             ])
-            ->brandName('🌻 Sunflower MLM')
+            ->brandName('Asimon')
             ->discoverResources(in: app_path('Filament/Admin/Resources'), for: 'App\\Filament\\Admin\\Resources')
             ->discoverPages(in: app_path('Filament/Admin/Pages'), for: 'App\\Filament\\Admin\\Pages')
             ->pages([
